@@ -28,11 +28,11 @@ class ExcelApp(QWidget):
             lbl.setWordWrap(True)
 
         # Загрузить Аренда файл
-        self.button_arenda = QPushButton("Показать Данные Файла Аренды")
+        self.button_arenda = QPushButton("Данные Файла Аренды")
         self.button_arenda.clicked.connect(self.load_arendaFile)
 
         # Загрузить выписку по платёжному счёту
-        self.button_payment = QPushButton("Показать Выписку По Платёжному Счёту")
+        self.button_payment = QPushButton("Выписка По Платёжному Счёту")
         self.button_payment.clicked.connect(self.load_paymentFile)
 
         # отслеживать платежи
@@ -266,6 +266,7 @@ class ExcelApp(QWidget):
             for i in range(status_final.shape[0]):
                 for j in range(status_final.shape[1]):
                     self.table.setItem(i, j, QTableWidgetItem(str(status_final.iat[i, j])))
+            status_final.to_excel("отслеживание.xlsx")
             self.lbl_result.setStyleSheet("color: blue;")
             QMessageBox.information(self, "", "Обработка данных успешно завершена")
         except Exception as e:
