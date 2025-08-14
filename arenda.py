@@ -12,11 +12,11 @@ class ExcelApp(QWidget):
         self.setWindowTitle("Аренда")
         self.setGeometry(100, 100, 800, 600)
 
-        #  Variables for arenda and payment files
+        #  Переменные для файлов arenda и payment
         self.arenda_file = None
         self.payment_file = None
 
-        # Set GUI
+        # Установить GUI
         layout = QVBoxLayout(self)
 
         self.lbl_arenda = QLabel("файл с информацией об аренде не загружен")
@@ -40,7 +40,7 @@ class ExcelApp(QWidget):
         self.button_check.setEnabled(False)
         self.button_check.clicked.connect(self.check_payment)
 
-        # Visual separator
+        # Визуальный разделитель
         sep = QFrame()
         sep.setFrameShape(QFrame.HLine)
         sep.setFrameShadow(QFrame.Sunken)
@@ -57,10 +57,10 @@ class ExcelApp(QWidget):
         layout.addWidget(self.table)
         self.setLayout(layout)
 
-    # create dataframe with info from file with the arenda information
+    # создать dataframe с информацией из файла с информацией об аренде
     def load_arendaFile(self):
 
-        # Ask for the information about the GARAGES
+        # Запросите информацию о ГАРАЖАХ
         msg_box = QMessageBox()
         msg_box.setIcon(QMessageBox.Information)
         msg_box.setText("Загрузите файл с информацией о Гаражах")
@@ -75,9 +75,10 @@ class ExcelApp(QWidget):
             try:
                 arenda_df = pd.read_excel(file_path)
 
-                # add headers to the df
+                # добавить заголовки к df
                 arenda_df.columns = ["Гараж", "Сумма","Дата"]
-                # Displaying the dataframe in the layout
+
+                # Отображение фрейма данных в layout
                 arenda_df['Сумма'] = pd.to_numeric(arenda_df['Сумма'], errors='coerce')
                 self.table.setRowCount(arenda_df.shape[0])
                 self.table.setColumnCount(arenda_df.shape[1])
@@ -87,7 +88,7 @@ class ExcelApp(QWidget):
                     for j in range(arenda_df.shape[1]):
                         self.table.setItem(i, j, QTableWidgetItem(str(arenda_df.iat[i, j])))
 
-                # saving dataframe to variable arenda_file and updating layout
+                # сохранение данных в переменной arenda_file и обновление layout
                 self.arenda_file = arenda_df
                 self.lbl_arenda.setText(f"Информация об аренде загружена: {file_path}")
                 self.lbl_arenda.setStyleSheet("color: green;")
@@ -98,10 +99,10 @@ class ExcelApp(QWidget):
                 QMessageBox.critical(self, "Ошибка", f"Ошибка при извлечении информации Аренды:\n{e}")
 
 
-    # create df with info from file with payment information
+    # создать df с информацией из файла с платежной информацией
     def load_paymentFile(self):
 
-        # Ask for the information about the PAYMENTS
+        # Запросите информацию о ПЛАТЕЖАХ
         msg_box = QMessageBox()
         msg_box.setIcon(QMessageBox.Information)
         msg_box.setText("Загрузите выписку по платёжному счёту")
@@ -116,32 +117,32 @@ class ExcelApp(QWidget):
                 df = pd.read_excel(file_path)
                 payment_df = df.drop(df.columns[[1, 2, 3]], axis=1).dropna()
 
-                # add headers to the df
+                # добавить заголовки к df
                 payment_df.columns = ["Дата", "Сумма"]
 
-                # filter rows with text
+                # фильтровать строки с текстом
                 df_filtered = payment_df[~payment_df['Дата'].str.contains(r'[\u0400-\u04FF]', na=False) & ~payment_df['Сумма'].str.contains(r'[\u0400-\u04FF]', na=False)]
 
-                # format the payments
+                # форматировать платежи
                 df_filtered['Сумма'] = (
                     df_filtered['Сумма'].str.replace(' ', '', regex=False).str.replace(',', '.', regex=False).str.replace('+', '', regex=False))
 
-                # convert payments to double
+                # преобразовать платежи в double
                 df_filtered['Сумма'] = pd.to_numeric(df_filtered['Сумма'], errors='coerce')
                 df_filtered = df_filtered.dropna(subset=['Сумма'])
 
-                # regex for extracting date in format dd.mm.yyyy
+                # Регулярное выражение для извлечения даты в формате dd.mm.yyyy
                 pat = r'(?<!\d)(?P<d>\d{1,2})[.\-/]?(?P<m>\d{1,2})[.\-/]?(?P<y>\d{4})(?!\d)'
 
-                # extract date
+                # дата извлечения
                 date = df_filtered['Дата'].astype(str).str.extract(pat)
                 df_filtered['Дата'] = pd.to_datetime(
                     date['d'].str.zfill(2) + '.' + date['m'].str.zfill(2) + '.' + date['y'], dayfirst=True, errors='coerce')
 
-                # eliminate any data that could not be parsed
+                # удалить все данные, которые не удалось проанализировать
                 df_filtered = df_filtered.dropna(subset=['Дата'])
 
-                # Display table in layout
+                # Отображение таблицы в layout
                 self.table.setRowCount(df_filtered.shape[0])
                 self.table.setColumnCount(df_filtered.shape[1])
                 self.table.setHorizontalHeaderLabels(df_filtered.columns)
@@ -150,7 +151,7 @@ class ExcelApp(QWidget):
                     for j in range(df_filtered.shape[1]):
                         self.table.setItem(i, j, QTableWidgetItem(str(df_filtered.iat[i, j])))
 
-                 # saving dataframe to variable arenda_file and updating layout
+                 # сохранение данных в переменной arenda_file и обновление layout
                 self.payment_file = df_filtered
                 self.lbl_payment.setText(f"Информация об оплатые загружена: {file_path}")
                 self.lbl_payment.setStyleSheet("color: green;")
@@ -162,36 +163,36 @@ class ExcelApp(QWidget):
 
 
 
-    # Calculate due payment dates
+    # Рассчитать сроки оплаты
     def payment_date(self, status_arenda):
 
-        # create a contract
+        # составить договор df
         contracts = (status_arenda[['Гараж','Дата_x']].dropna().groupby('Гараж', as_index=False)['Дата_x'].min())
 
-        # get minimum and maximum date
+        # получить минимальную и максимальную дату
         valid_transfers = status_arenda['Дата_y'].dropna()
         if not valid_transfers.empty:
             per_min = valid_transfers.min().to_period('M')
             per_max = valid_transfers.max().to_period('M')
         else:
-            # if there is no transfer
+            # если нет перевода
             per_min = contracts['Дата_x'].min().to_period('M')
             per_max = contracts['Дата_x'].max().to_period('M')
 
-        # calculate if it is the end of the month
+        # рассчитать, если это конец месяца
         def end_of_month(ts: pd.Timestamp) -> bool:
             return ts.day == monthrange(ts.year, ts.month)[1]
 
         def due_date_for_month(start_date: pd.Timestamp, period: pd.Period) -> pd.Timestamp:
             y, m = period.year, period.month
             last_day = monthrange(y, m)[1]
-            # if the beginning is at the end of the month, payment will be at the end of the month
+            # если начало происходит в конце месяца, оплата будет произведена в конце месяца
             if end_of_month(start_date):
                 return pd.Timestamp(y,m,last_day)
             # if not, same as the first day contract
             return pd.Timestamp(y, m, min(start_date.day, last_day))
 
-        # building the payment calendar
+        # составление календаря платежей
         periods = pd.period_range(per_min, per_max, freq='M')
         registers = []
         for _, row in contracts.iterrows():
@@ -211,31 +212,31 @@ class ExcelApp(QWidget):
 
         return cal.sort_values(['Гараж', 'Дата оплаты (ожидаемая)']).reset_index(drop=True)
 
-    # check payment
+    # платеж чеком
     def check_payment(self):
         try:
             arenda_df = self.arenda_file
             payment_df = self.payment_file
-            # merge the arenda and payment data frames
+            # объединить рамки данных по арендной плате и платежам df
             status_arenda = arenda_df.merge(payment_df, on='Сумма', how='left', indicator=False)
 
-            # latest date in the payment file
+            # последняя дата в файле платежей
             max_date = max(status_arenda['Дата_y'])
 
-            # generating dataframe with due payment dates
+            # создание df с датами оплаты
             cal = self.payment_date(status_arenda)
 
-            # days before overdue date
+            # дни до срока просрочки
             days_to_pay = 2
 
-            # first month payment dataframe
+            # данные о платежах за первый месяц df
             payments_month = (status_arenda[['Гараж', 'Сумма', 'Дата_y']]
                               .dropna()
                               .assign(year_month=lambda x: x['Дата_y'].dt.to_period('M'))
                               .sort_values(['Гараж', 'Дата_y'])
                               .drop_duplicates(['Гараж', 'year_month'], keep='first'))
 
-            # Status dataframe with all needed for calculation of status
+            # Статусная df со всеми данными, необходимыми для расчета статуса
             status = (cal.merge(payments_month, on=['Гараж', 'year_month'], how='left').rename(
                 columns={'Дата_y': 'дата перевода'}))
 
@@ -251,13 +252,13 @@ class ExcelApp(QWidget):
                 default='просрочен'
             )
 
-            # print information about status dataframe
+            # вывести информацию о статусе df
             print(status.info(verbose=True))
 
-            # cleaned version of status dataframe for displaying in GUI
+            # очищенная версия фрейма df для отображения в GUI
             status_final = status.drop(['year_month', 'дата перевода', 'days_later'], axis=1)
 
-            # Creating and populating GUI dataframe
+            # Создание и заполнение данных GUI
             self.table.setRowCount(status_final.shape[0])
             self.table.setColumnCount(status_final.shape[1])
             self.table.setHorizontalHeaderLabels(status_final.columns)
@@ -270,7 +271,7 @@ class ExcelApp(QWidget):
         except Exception as e:
             QMessageBox.critical(self, "Ошибка", f"обработка данных не удалась:\n{e}")
 
-    # Activates button_track if the payment_file and arenda_file exist
+    # Активирует button_track, если файлы payment_file и arenda_file существуют.
     def activate_check_button(self):
         activate = self.arenda_file is not None and self.payment_file is not None
         self.button_check.setEnabled(activate)
